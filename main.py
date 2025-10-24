@@ -5,13 +5,13 @@ import sys
 
 def main():
     
-    print("Starting the main function.")
+    print("Iniciando o simulador")
     quantum, aging = Utils.readConfig()
     print(f"Quantum: {quantum}, Aging: {aging}")
     
     processes = Utils.readProcessesStdin()
     if not processes:
-        print("Nenhum processo lido. Forneça processos no stdin no formato: arrival burst priority")
+        print("Nenhum processo lido. Forneça processos no stdin no formato: [tempo de chegada] [tempo de execução] [prioridade]")
         sys.exit(1)
     for proc in processes:
         print(f"  {proc}")

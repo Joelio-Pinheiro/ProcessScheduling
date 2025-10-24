@@ -61,27 +61,26 @@ class Scheduling:
         print(f"\nTimeline: ")
         self.print_timeline(processes, timeline)
 
+    def print_timeline(self, processes, timeline):
+        col_width = 6  # seta o espaço das colunas
+
+        # Cabeçalho
+        pids = [p.pid for p in sorted(processes, key=lambda x: int(x.pid[1:]))]
+        header = f"{'tempo'.ljust(col_width)}" + ''.join(pid.center(col_width) for pid in pids)
+        print(header)
+
+        # Corpo da timeline
+        for start, end, running in timeline:
+            time_label = f"{int(start)}-{int(end)}".ljust(col_width)
+            row = [time_label]
+            for pid in pids:
+                row.append(('##' if running == pid else '--').center(col_width))
+            print(''.join(row))
+    
     def add_process(self, process):
         self.processes.append(process)
     def get_processes(self):
         return self.processes
-    
-    def print_timeline(self, processes, timeline):
-        header = 'tempo '
-        pids = [p.pid for p in sorted(processes, key=lambda x: int(x.pid[1:]))]
-        header += ' '.join(pids)
-        print(header)
-
-        # Imprime a linha do tempo
-        for t, (start, end, running) in enumerate(((i[0], i[1], i[2]) for i in timeline)):
-            # mostra como '0- 1' ou '9-10'
-            start_s = int(start)
-            end_s = int(end)
-            time_label = f"{start_s}-{end_s}"
-            row = [time_label]
-            for pid in pids:
-                row.append('##' if running == pid else '--')
-            print(' '.join(r.ljust(4) for r in row))
 
     # FCFS (First Come, First Served)
     def FCFS(self):
@@ -205,7 +204,7 @@ class Scheduling:
                 if current_process:
                     candidates.append(current_process)
 
-                next_p = Utils.break_tie(candidates, current_process) # desempata
+                next_p = Utils.breakTieSRTF(candidates, current_process) # desempata
                 
                 if old_process and next_p and old_process.pid != next_p.pid: # o proximo processo é diferente do atual
                     if old_process.remaining > 0:
@@ -317,11 +316,11 @@ class Scheduling:
 
                 highest_priority = max(p.priority for p in candidates) # maior valor de prioridade
                 tied = [p for p in candidates if p.priority == highest_priority] # processos com a maior prioridade se só tiver um já é o escolhido
-                
-                if len(tied) == 1: # apenas um processo, para evitar chamada desnecessária do break_tie
+
+                if len(tied) == 1: # apenas um processo, para evitar chamada desnecessária do breakTie
                     next_p = tied[0]
                 else:
-                    next_p = Utils.break_tie_rr(tied, current_process) # desempata caso tenha mais de um com a mesma prioridade
+                    next_p = Utils.breakTie(tied, current_process) # desempata caso tenha mais de um com a mesma prioridade
 
 
                 if old_process and next_p and old_process.pid != next_p.pid: # o proximo processo é diferente do atual
@@ -454,7 +453,7 @@ class Scheduling:
                     current_process = None # CPU fica livre para a re-seleção
 
                 # Se a CPU está livre ou o quantum esgotou, escolhe o próximo processo a executar
-                next_p = self.choose_next(prio_levels, prefer_candidate)
+                next_p = Utils.chooseNext(prio_levels, prefer_candidate)
 
                 if next_p: 
                     if old_process is not None and old_process.pid != next_p.pid: 
@@ -493,28 +492,3 @@ class Scheduling:
                 break
         return timeline, cs
     
-    def choose_next(self, prio_levels, prefer_current_candidate=None):
-    
-        all_ready_procs = []
-        # pega todos os processos prontos em uma lista
-        for q in prio_levels.values():
-            all_ready_procs.extend(list(q))
-             
-        if not all_ready_procs: # se não houver ninguem na fila retorna None
-            return None
-            
-        # pega a menor prioridade dinâmica entre os processos prontos
-        best_prio = min(p.dynamic_priority for p in all_ready_procs)
-        
-        # filtra os processos que possuem menor prioridade dinâmica
-        candidates = [p for p in all_ready_procs if p.dynamic_priority == best_prio]
-        
-        # usa o metodo de desempate para escolher entre os candidatos 
-        next = Utils.break_tie_rr(candidates, prefer_current_candidate)
-
-        if next:
-            # remove o processo escolhido da fila de prontos
-            prio_levels[next.dynamic_priority].remove(next)
-            return next
-
-        return None
