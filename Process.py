@@ -13,8 +13,10 @@ class Process:
         self.start_time = None                  # Tempo de início da execução
         self.finish_time = None                 # Tempo de conclusão da execução
         self.waiting_time = 0                   # Tempo de espera do processo
-        self.turnaround_time = None                # Tempo de resposta do processo
+        self.turnaround_time = None             # Tempo de resposta do processo
         self.dynamic_priority = self.priority   # Prioridade dinâmica (pode mudar)
         
     def get_info(self):
         return f"PID: {self.pid}, Arrival: {self.arrival}, Burst: {self.burst}, Priority: {self.priority}"
+
+

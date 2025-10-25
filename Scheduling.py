@@ -1,5 +1,6 @@
 from collections import defaultdict, deque
 from utils import Utils
+import random
 from Process import Process
 
 class Scheduling:
@@ -33,49 +34,11 @@ class Scheduling:
             try:
                 timeline, cs = func()
                 # Recalcula métricas e imprime
-                self.compute_metrics(procs, timeline, cs)
+                Utils.compute_metrics(procs, timeline, cs)
             except Exception as e:
                 print(f"Erro ao executar {name}: {e}")
             print("\n" + "-" * 80 + "\n")
 
-    
-    def compute_metrics(self, processes, timeline, cs):
-        # calcula turnaround e waiting times
-        total_turnaround = 0
-        total_waiting = 0
-        n = len(processes)
-
-        for p in processes:
-            turnaround = p.finish_time - p.arrival
-            waiting = turnaround - p.burst
-            total_turnaround += turnaround
-            total_waiting += waiting
-
-        avg_turnaround = total_turnaround / n if n > 0 else 0
-        avg_waiting = total_waiting / n if n > 0 else 0
-
-        print(f"\nTempo médio de vida (Turnaround Time): {avg_turnaround:.2f}")
-        print(f"Tempo médio de espera (Waiting Time): {avg_waiting:.2f}")
-        print(f"Número de trocas de contexto: {cs}\n")
-
-        print(f"\nTimeline: ")
-        self.print_timeline(processes, timeline)
-
-    def print_timeline(self, processes, timeline):
-        col_width = 6  # seta o espaço das colunas
-
-        # Cabeçalho
-        pids = [p.pid for p in sorted(processes, key=lambda x: int(x.pid[1:]))]
-        header = f"{'tempo'.ljust(col_width)}" + ''.join(pid.center(col_width) for pid in pids)
-        print(header)
-
-        # Corpo da timeline
-        for start, end, running in timeline:
-            time_label = f"{int(start)}-{int(end)}".ljust(col_width)
-            row = [time_label]
-            for pid in pids:
-                row.append(('##' if running == pid else '--').center(col_width))
-            print(''.join(row))
     
     def add_process(self, process):
         self.processes.append(process)
@@ -103,7 +66,13 @@ class Scheduling:
             
             # Se não há processo em execução, pega o próximo da fila
             if current_process is None and ready:
-                next_p = ready.popleft()
+                min_arrival = min(p.arrival for p in ready)
+                candidates = [p for p in ready if p.arrival == min_arrival] # processos com o menor tempo de chegada se tiver apenas um já é o escolhido
+                next_p = Utils.breakTie(candidates, None) # desempata entre os de menor tempo de chegada seguindo a 3 regra de desempate 
+                ready.remove(next_p)
+                
+                # next_p = ready.popleft()
+                
                 # Faz a troca de contexto se necessario
                 if timeline and timeline[-1][2] is not None and timeline[-1][2] != next_p.pid:
                     cs += 1
@@ -151,8 +120,9 @@ class Scheduling:
             if current_process is None and ready:
                 # Seleciona o processo com o menor tempo de execução
                 
-                candidates = sorted(ready, key=lambda p: (p.burst, int(p.pid[1:])))
-                next_p = candidates[0]
+                min_burst = min(p.burst for p in ready)
+                candidates = [p for p in ready if p.burst == min_burst] # processos com o menor burst time se tiver apenas um já é o escolhido
+                next_p = random.choice(candidates) # desempata aleatoriamente entre os de menor burst time seguindo a 3 regra de desempate
                 ready.remove(next_p)
                 # Faz a troca de contexto se necessario
                 if timeline and timeline[-1][2] is not None and timeline[-1][2] != next_p.pid:
@@ -256,8 +226,9 @@ class Scheduling:
             # Se não há processo em execução, pega o próximo da fila
             if current_process is None and ready:
                 # Seleciona o processo com a maior prioridade (maior valor numérico)
-                candidates = sorted(ready, key=lambda p: (-p.priority, int(p.pid[1:])))
-                next_p = candidates[0]
+                max_priority = max(p.priority for p in ready)
+                candidates = [p for p in ready if p.priority == max_priority] # processos com a maior prioridade se tiver apenas um já é o escolhido
+                next_p = Utils.breakTie(candidates, None) # desempata caso tenha mais de um com a mesma prioridade
                 ready.remove(next_p)
                 
                 # Faz a troca de contexto se necessario
@@ -286,7 +257,6 @@ class Scheduling:
         # Retorna uma lista de tuplas representando a timeline(tempo_inicio, tempo_fim, pid) e o número de trocas de contexto
         return timeline, cs
             
-    
     # Por Prioridade (PS) - Preemptivo
     def PriorityPreemptive(self):
         procs = self.get_processes()
@@ -396,7 +366,6 @@ class Scheduling:
                 elif timeslice == 0: # Quantum esgotado, preempção
                     ready.append(current_process) # coloca o atual de volta no final da fila
                     current_process = None
-                    # cs += 1 # troca de contexto
             else:
                 timeline.append((time, time + 1, None)) # CPU ociosa
             time += 1
@@ -404,7 +373,6 @@ class Scheduling:
                 # Sai se não há mais processos para executar
                 break
         return timeline, cs   
-    
     
     # Round Robin (RR) - Com prioridade e envelhecimento
     def RoundRobinPriorityAging(self):
@@ -427,6 +395,7 @@ class Scheduling:
             # Adiciona processos que chegaram ao tempo atual na fila
             while idx < len(process_by_arrival) and process_by_arrival[idx].arrival <= time:
                 p = process_by_arrival[idx]
+                # Adiciona o processo à fila de prontos de acordo com sua prioridade dinâmica
                 prio_levels[p.dynamic_priority].append(p)
                 idx += 1
 

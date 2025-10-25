@@ -18,7 +18,7 @@ def main():
     
     scheduling = Scheduling(quantum=quantum, aging=aging)
 
-    for proc in processes:
+    for proc in processes: # adiciona os processos no escalonador
         scheduling.add_process(Process(proc[0], proc[1], proc[2], proc[3]))
 
     # Executa os algoritmos de escalonamento

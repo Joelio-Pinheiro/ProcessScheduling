@@ -46,6 +46,46 @@ class Utils:
             pid += 1
         return procs
     
+    @staticmethod
+    def compute_metrics(processes, timeline, cs):
+        # calcula turnaround e waiting times
+        total_turnaround = 0
+        total_waiting = 0
+        n = len(processes)
+
+        for p in processes:
+            turnaround = p.finish_time - p.arrival
+            waiting = turnaround - p.burst
+            total_turnaround += turnaround
+            total_waiting += waiting
+
+        avg_turnaround = total_turnaround / n if n > 0 else 0
+        avg_waiting = total_waiting / n if n > 0 else 0
+
+        print(f"\nTempo médio de vida (Turnaround Time): {avg_turnaround:.2f}")
+        print(f"Tempo médio de espera (Waiting Time): {avg_waiting:.2f}")
+        print(f"Número de trocas de contexto: {cs}\n")
+
+        print(f"\nTimeline: ")
+        Utils.printTimeline(processes, timeline)
+        
+    @staticmethod
+    def printTimeline(processes, timeline):
+        col_width = 6  # seta o espaço das colunas
+
+        # Cabeçalho
+        pids = [p.pid for p in sorted(processes, key=lambda x: int(x.pid[1:]))]
+        header = f"{'tempo'.ljust(col_width)}" + ''.join(pid.center(col_width) for pid in pids)
+        print(header)
+
+        # Corpo da timeline
+        for start, end, running in timeline:
+            time_label = f"{int(start)}-{int(end)}".ljust(col_width)
+            row = [time_label]
+            for pid in pids:
+                row.append(('##' if running == pid else '--').center(col_width))
+            print(''.join(row))
+    
     # Escolhe o proximo processo no Round Robin com 
     @staticmethod
     def chooseNext(prio_levels, prefer_current_candidate=None):
