@@ -2,7 +2,7 @@
 
 ## Como Rodar
 
-1. Configurar o arquivo de configuração e o de processos como quiser
+1. Configurar o arquivo de configuração(./config) e o de processos(processos.txt) como quiser
 
 2. No terminal, dentro da pasta do projeto, basta rodar:
 
